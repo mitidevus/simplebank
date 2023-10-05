@@ -10,17 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomAccount(t *testing.T) Accounts {
+func createRandomAccount(t *testing.T) Account {
 	arg := CreateAccountParams{
-		Owner: util.RandonOwner(),
-		Balance: util.RandomMoney(),
+		Owner:    util.RandonOwner(),
+		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}
 
 	account, err := testQueries.CreateAccount(context.Background(), arg)
 
 	require.NoError(t, err)
-	require.NotEmpty(t, account) 
+	require.NotEmpty(t, account)
 
 	require.Equal(t, arg.Owner, account.Owner)
 	require.Equal(t, arg.Balance, account.Balance)
@@ -54,7 +54,7 @@ func TestUpdateAccount(t *testing.T) {
 	account1 := createRandomAccount(t)
 
 	arg := UpdateAccountParams{
-		ID: account1.ID,
+		ID:      account1.ID,
 		Balance: util.RandomMoney(),
 	}
 
@@ -87,8 +87,8 @@ func TestListAccounts(t *testing.T) {
 	}
 
 	arg := ListAccountsParams{
-		Limit: 5,
-		Offset: 5, // 
+		Limit:  5,
+		Offset: 5, //
 	}
 
 	accounts, err := testQueries.ListAccounts(context.Background(), arg)
