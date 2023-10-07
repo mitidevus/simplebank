@@ -5,7 +5,7 @@ createdb:
 	docker exec -it postgres-go createdb --username=postgres --owner=postgres simple_bank
 
 dropdb:
-	docker exec -it postgres-go dropdb --username=postgres simple_bank
+	docker exec -it postgres-go dropdb --username=postgres simple_bank 
 
 migrateup:
 	migrate -path db/migration -database "postgresql://postgres:postgres@localhost:5432/simple_bank?sslmode=disable" -verbose up
@@ -19,4 +19,7 @@ sqlc:
 test:
 	go test -v -cover ./...
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test
+server:
+	go run main.go
+
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server
