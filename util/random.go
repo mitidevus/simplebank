@@ -13,7 +13,7 @@ func init() {
 }
 
 func RandomInt(min, max int64) int64 {
-	return min + rand.Int63n(max - min + 1) // Int63 return random integer between 0 and (n - 1)
+	return min + rand.Int63n(max-min+1) // Int63 return random integer between 0 and (n - 1)
 }
 
 func RandomString(n int) string {
@@ -37,7 +37,7 @@ func RandomMoney() int64 {
 }
 
 func RandomCurrency() string {
-	currencies := []string{"USD", "EUR", "CAD"}
+	currencies := []string{USD, EUR, CAD, VND}
 	n := len(currencies)
 
 	return currencies[rand.Intn(n)]
