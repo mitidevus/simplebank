@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+    postgres:
+        image: postgres:13
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=simple_bank
+    api:
+        build:
+            # "." is the root folder
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - "8080:8080"
+        environment:
+            # All services in docker-compose file will run on the same network
+            # They can communicate with each other via name
+            # So, just pass name of postgres service: "postgres:5432"
+            - DB_SOURCE=postgresql://postgres:postgres@postgres:5432/simple_bank?sslmode=disable
+        depends_on:
+            # Postgres service finishes, then api service runs
+            - postgres
+        entrypoint: ["/app/wait-for.sh", "postgres:5432", "--", "/app/start.sh"]
+        command: ["/app/main"]
