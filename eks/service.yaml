@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: simple-bank-api-service
+spec:
+    selector: # A pod selector rule so that the service can find the set of pods to route the traffic to
+        app: simple-bank-api
+    ports:
+        - protocol: TCP # This service will listen HTTP API requests, so the protocol is TCP
+          port: 80
+          targetPort: 8080
+    type: LoadBalancer
