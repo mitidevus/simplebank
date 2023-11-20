@@ -63,7 +63,7 @@ func TestListTransfer(t *testing.T) {
 
 	arg := ListTransfersParams{
 		FromAccountID: account1.ID,
-		ToAccountID:   account1.ID,
+		ToAccountID:   account2.ID,
 	}
 
 	transfers, err := testQueries.ListTransfers(context.Background(), arg)
