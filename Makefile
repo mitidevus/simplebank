@@ -1,6 +1,6 @@
 DB_URL=postgresql://postgres:postgres@localhost:5432/simple_bank?sslmode=disable
 
-ostgres:
+postgres:
 	docker run --name postgres-go --network bank-network -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -d postgres:13
 	
 createdb:
