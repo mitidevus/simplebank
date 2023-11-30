@@ -10,8 +10,6 @@ COPY . .
 # -o stands for output, main is the name of output binary file
 # Pass in the main entrypoint file of our application, which is main.go (at the root of project)
 RUN go build -o main main.go
-RUN apk add curl
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz
 
 # Run stage (use alpine linux as the base image)
 FROM alpine:3.18
@@ -22,13 +20,11 @@ WORKDIR /app
 # "." means copy to current working folder, represent the WORKDIR that we set above (/app)
 # NOTE: WORKDIR "/app" of Build State and "/app" of Run stage is different
 COPY --from=builder /app/main .
-# Make migration DB
-COPY --from=builder /app/migrate.linux-amd64 ./migrate
 # Copy confile file (.env)
 COPY app.env .
 COPY start.sh .
 COPY wait-for.sh .
-COPY db/migration ./migration
+COPY db/migration ./db/migration
 
 
 
