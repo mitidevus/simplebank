@@ -27,14 +27,30 @@ func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 		return nil, status.Errorf(codes.Internal, "fail to hash password: %s", err)
 	}
 
-	arg := db.CreateUserParams{
-		Username:       req.Username,
-		HashedPassword: hashedPassword,
-		FullName:       req.FullName,
-		Email:          req.Email,
+	// Use db transaction
+	arg := db.CreateUserTxParams{
+		CreateUserParams: db.CreateUserParams{
+			Username:       req.Username,
+			HashedPassword: hashedPassword,
+			FullName:       req.FullName,
+			Email:          req.Email,
+		},
+		AfterCreate: func(user db.User) error {
+			// Send verify email to user
+			taskPayload := &worker.PayloadSendVerifyEmail{
+				Username: user.Username,
+			}
+			opts := []asynq.Option{
+				asynq.MaxRetry(10),                // Only allow the task to be retried at most 10 times if it fails
+				asynq.ProcessIn(10 * time.Second), // Add delay to the task, only be picked up by the processor after 10 seconds
+				asynq.Queue(worker.QueueCritical), // Sending this task to "critical" queue
+			}
+
+			return server.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
+		},
 	}
 
-	user, err := server.store.CreateUser(ctx, arg)
+	txResult, err := server.store.CreateUserTx(ctx, arg)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
@@ -45,24 +61,8 @@ func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 		return nil, status.Errorf(codes.Internal, "failed to create user: %s", err)
 	}
 
-	// Send verify email to user
-	// TODO: use db transaction
-	taskPayload := &worker.PayloadSendVerifyEmail{
-		Username: user.Username,
-	}
-	opts := []asynq.Option{
-		asynq.MaxRetry(10),                // Only allow the task to be retried at most 10 times if it fails
-		asynq.ProcessIn(10 * time.Second), // Add delay to the task, only be picked up by the processor after 10 seconds
-		asynq.Queue(worker.QueueCritical), // Sending this task to "critical" queue
-	}
-
-	err = server.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to distribute task to send verify email: %s", err)
-	}
-
 	res := &pb.CreateUserResponse{
-		User: convertUser(user),
+		User: convertUser(txResult.User),
 	}
 
 	return res, nil
