@@ -2,12 +2,15 @@ package gapi
 
 import (
 	"context"
+	"time"
 
+	"github.com/hibiken/asynq"
 	"github.com/lib/pq"
 	db "github.com/mitidevus/simplebank/db/sqlc"
 	"github.com/mitidevus/simplebank/pb"
 	"github.com/mitidevus/simplebank/util"
 	"github.com/mitidevus/simplebank/val"
+	"github.com/mitidevus/simplebank/worker"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -39,7 +42,23 @@ func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 				return nil, status.Errorf(codes.AlreadyExists, "username already exists: %s", err)
 			}
 		}
-		return nil, status.Errorf(codes.Internal, "fail to create user: %s", err)
+		return nil, status.Errorf(codes.Internal, "failed to create user: %s", err)
+	}
+
+	// Send verify email to user
+	// TODO: use db transaction
+	taskPayload := &worker.PayloadSendVerifyEmail{
+		Username: user.Username,
+	}
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),                // Only allow the task to be retried at most 10 times if it fails
+		asynq.ProcessIn(10 * time.Second), // Add delay to the task, only be picked up by the processor after 10 seconds
+		asynq.Queue(worker.QueueCritical), // Sending this task to "critical" queue
+	}
+
+	err = server.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to distribute task to send verify email: %s", err)
 	}
 
 	res := &pb.CreateUserResponse{
