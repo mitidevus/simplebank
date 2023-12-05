@@ -5,6 +5,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	db "github.com/mitidevus/simplebank/db/sqlc"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -25,12 +26,17 @@ type RedisTaskProcessor struct {
 func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskProcessor {
 	server := asynq.NewServer(
 		redisOpt,
-		asynq.Config{
+		asynq.Config{ // This config object allow us to control many different parameters of the asynq Server
 			Queues: map[string]int{
 				QueueCritical: 10,
 				QueueDefault:  5,
 			},
-		}, // This config object allow us to control many different parameters of the asynq Server
+			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
+				log.Error().Err(err).Str("type", task.Type()).
+					Bytes("payload", task.Payload()).Msg("process task failed")
+			}),
+			Logger: NewLogger(),
+		},
 	)
 
 	return &RedisTaskProcessor{
